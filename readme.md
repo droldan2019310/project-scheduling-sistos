@@ -31,9 +31,10 @@ project/
 │   ├── priority.py
 │
 ├── pages/                   # Páginas de Streamlit
+│   └── 1_scheduling.py      # Simulación de calendarización
 │   └── 2_sync.py            # Simulación de sincronización (Mutex y Semáforo)
 │
-├── app.py                   # Página principal (planificación)
+├── home.py                  # Página principal (planificación)
 ├── requirements.txt         # Requisitos del proyecto
 └── README.md                # Este archivo
 ```
@@ -63,7 +64,7 @@ pip install streamlit
 Desde la raíz del proyecto, ejecuta:
 
 ```bash
-streamlit run app.py
+streamlit run home.py
 ```
 
 Y luego puedes cambiar entre páginas desde el **sidebar** (por ejemplo, para ir a `2_sync.py`).
