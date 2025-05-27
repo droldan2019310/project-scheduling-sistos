@@ -4,10 +4,9 @@ import plotly.express as px
 import time
 from algorithms import fifo, sjf, srtf, round_robin, priority
 
-st.set_page_config(page_title="Simulador de Planificación de Procesos", layout="wide")
 
-st.title("🎯 Simulador de Algoritmos de Calendarización")
-st.markdown("Carga tus procesos y selecciona uno o más algoritmos para simular visualmente su comportamiento.")
+st.set_page_config(page_title="Simulador de Calendarización", layout="wide")
+st.title("📅 Simulación de Algoritmos de Calendarización")
 
 uploaded_file = st.file_uploader("📂 Cargar archivo de procesos (.txt)", type="txt")
 
