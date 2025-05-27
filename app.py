@@ -1,19 +1,17 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 import time
 from algorithms import fifo, sjf, srtf, round_robin, priority
 
 st.set_page_config(page_title="Simulador de Planificación de Procesos", layout="wide")
 
-# ===== Estilo general =====
 st.title("🎯 Simulador de Algoritmos de Calendarización")
 st.markdown("Carga tus procesos y selecciona uno o más algoritmos para simular visualmente su comportamiento.")
 
-# ===== Carga del archivo .txt =====
 uploaded_file = st.file_uploader("📂 Cargar archivo de procesos (.txt)", type="txt")
 
 if uploaded_file:
-    # Leer datos
     content = uploaded_file.read().decode("utf-8").splitlines()
     procesos = []
     for line in content:
@@ -29,7 +27,6 @@ if uploaded_file:
     st.subheader("📋 Procesos cargados")
     st.dataframe(df)
 
-    # ===== Selección de algoritmos =====
     st.subheader("⚙️ Seleccionar algoritmos a simular")
     algos = st.multiselect(
         "Selecciona uno o más algoritmos:",
@@ -40,14 +37,16 @@ if uploaded_file:
     if "Round Robin" in algos:
         quantum = st.number_input("⏱ Quantum para Round Robin:", min_value=1, step=1, value=2)
 
-    # ===== Ejecutar simulación =====
+    simulate_step_by_step = st.checkbox("🌀 Simulación paso a paso", value=True)
+
     if st.button("🚀 Ejecutar simulación"):
         st.subheader("📊 Resultados de simulación")
-
         tabs = st.tabs(algos)
+
         for i, algo in enumerate(algos):
             with tabs[i]:
                 st.markdown(f"### Algoritmo: `{algo}`")
+
                 if algo == "FIFO":
                     resultado = fifo.fifo_scheduler(procesos)
                 elif algo == "SJF":
@@ -62,25 +61,43 @@ if uploaded_file:
                     st.error("Algoritmo no implementado.")
                     continue
 
-                # ===== Mostrar Gantt =====
-                st.markdown("#### 🕒 Diagrama de Gantt (simulación dinámica)")
+                st.markdown("#### 🕒 Diagrama de Gantt (simulación animada)")
                 gantt = resultado["timeline"]
-                gantt_container = st.empty()
+                gantt_placeholder = st.empty()
 
-                chart_data = []
-                for i, bloque in enumerate(gantt):
-                    chart_data.append({
+                df_gantt = pd.DataFrame(columns=["Proceso", "Inicio", "Fin", "Duración", "Base"])
+
+                for bloque in gantt:
+                    new_row = {
                         "Proceso": bloque["pid"],
                         "Inicio": bloque["start"],
-                        "Fin": bloque["end"]
-                    })
-                    gantt_df = pd.DataFrame(chart_data)
-                    gantt_container.bar_chart(
-                        gantt_df.set_index("Proceso")[["Inicio", "Fin"]].T
-                    )
-                    time.sleep(0.4)
+                        "Fin": bloque["end"],
+                        "Duración": bloque["end"] - bloque["start"],
+                        "Base": bloque["start"]
+                    }
+                    df_gantt = pd.concat([df_gantt, pd.DataFrame([new_row])], ignore_index=True)
 
-                # ===== Mostrar métricas =====
+                    fig = px.bar(
+                        df_gantt,
+                        y="Proceso",
+                        x="Duración",
+                        color="Proceso",
+                        orientation="h",
+                        text="Duración",
+                        base="Base",
+                        hover_data=["Inicio", "Fin"]
+                    )
+                    fig.update_layout(
+                        title="Diagrama de Gantt (basado en ciclos)",
+                        xaxis_title="Ciclo",
+                        yaxis_title="Proceso",
+                        barmode="stack"
+                    )
+                    gantt_placeholder.plotly_chart(fig, use_container_width=True)
+
+                    if simulate_step_by_step:
+                        time.sleep(0.3 * new_row["Duración"])
+
                 st.markdown("#### 📈 Métricas de eficiencia")
                 st.metric("Tiempo promedio de espera", f"{resultado['avg_waiting_time']:.2f} ciclos")
                 total_time = max(b['end'] for b in gantt)
