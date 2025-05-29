@@ -102,6 +102,9 @@ if uploaded_file:
                         }
                         df_gantt = pd.concat([df_gantt, pd.DataFrame([new_row])], ignore_index=True)
 
+                        # Asignamos un key único por algoritmo y ciclo
+                        fig_key = f"{algo}-{i}-{bloque['pid']}-{bloque['start']}"
+                        
                         fig = px.bar(
                             df_gantt,
                             y="Proceso",
@@ -118,7 +121,8 @@ if uploaded_file:
                             yaxis_title="Proceso",
                             barmode="stack"
                         )
-                        gantt_placeholder.plotly_chart(fig, use_container_width=True)
+
+                        gantt_placeholder.plotly_chart(fig, use_container_width=True, key=fig_key)
 
                         if simulate_step_by_step:
                             time.sleep(0.3 * new_row["Duración"])
