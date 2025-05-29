@@ -1,6 +1,7 @@
+from copy import deepcopy
+import heapq
+
 def srtf_scheduler(processes):
-    from copy import deepcopy
-    import heapq
 
     time = 0
     processes = deepcopy(processes)

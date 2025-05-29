@@ -1,6 +1,8 @@
+from collections import deque
+from copy import deepcopy
+
 def round_robin_scheduler(processes, quantum):
-    from collections import deque
-    from copy import deepcopy
+
 
     processes = deepcopy(processes)
     time = 0
