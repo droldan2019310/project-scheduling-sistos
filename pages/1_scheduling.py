@@ -13,94 +13,122 @@ uploaded_file = st.file_uploader("📂 Cargar archivo de procesos (.txt)", type=
 if uploaded_file:
     content = uploaded_file.read().decode("utf-8").splitlines()
     procesos = []
-    for line in content:
-        pid, bt, at, pr = line.strip().split(",")
+    errores = []
+    for i, line in enumerate(content, 1):
+        # Limpiar la línea de espacios y saltos
+        line = line.strip()
+        if not line:
+            continue  # Ignorar líneas vacías
+        # Separar por comas
+        partes = [p.strip() for p in line.split(",")]
+        # Validar formato: debe tener 4 partes
+        if len(partes) != 4:
+            errores.append(f"Línea {i}: formato inválido (se esperan 4 valores separados por coma)")
+            continue
+        pid, bt, at, pr = partes
+        # Validar que burst time, arrival time y priority sean enteros
+        try:
+            bt = int(bt)
+            at = int(at)
+            pr = int(pr)
+        except ValueError:
+            errores.append(f"Línea {i}: burst time, arrival time y prioridad deben ser números enteros")
+            continue
         procesos.append({
-            "pid": pid.strip(),
-            "burst_time": int(bt.strip()),
-            "arrival_time": int(at.strip()),
-            "priority": int(pr.strip())
+            "pid": pid,
+            "burst_time": bt,
+            "arrival_time": at,
+            "priority": pr
         })
 
-    df = pd.DataFrame(procesos)
-    st.subheader("📋 Procesos cargados")
-    st.dataframe(df)
+    if errores:
+        st.error("Se detectaron errores en el archivo:")
+        procesos=[]
+        for err in errores:
+            st.write(f"- {err}")
 
-    st.subheader("⚙️ Seleccionar algoritmos a simular")
-    algos = st.multiselect(
-        "Selecciona uno o más algoritmos:",
-        ["FIFO", "SJF", "SRTF", "Round Robin", "Priority"]
-    )
+    if procesos:
+        df = pd.DataFrame(procesos)
+        st.subheader("📋 Procesos cargados")
+        st.dataframe(df)
 
-    quantum = None
-    if "Round Robin" in algos:
-        quantum = st.number_input("⏱ Quantum para Round Robin:", min_value=1, step=1, value=2)
+        st.subheader("⚙️ Seleccionar algoritmos a simular")
+        algos = st.multiselect(
+            "Selecciona uno o más algoritmos:",
+            ["FIFO", "SJF", "SRTF", "Round Robin", "Priority"]
+        )
 
-    simulate_step_by_step = st.checkbox("🌀 Simulación paso a paso", value=True)
+        quantum = None
+        if "Round Robin" in algos:
+            quantum = st.number_input("⏱ Quantum para Round Robin:", min_value=1, step=1, value=2)
 
-    if st.button("🚀 Ejecutar simulación"):
-        st.subheader("📊 Resultados de simulación")
-        tabs = st.tabs(algos)
+        simulate_step_by_step = st.checkbox("🌀 Simulación paso a paso", value=True)
 
-        for i, algo in enumerate(algos):
-            with tabs[i]:
-                st.markdown(f"### Algoritmo: `{algo}`")
+        if st.button("🚀 Ejecutar simulación"):
+            st.subheader("📊 Resultados de simulación")
+            tabs = st.tabs(algos)
 
-                if algo == "FIFO":
-                    resultado = fifo.fifo_scheduler(procesos)
-                elif algo == "SJF":
-                    resultado = sjf.sjf_scheduler(procesos)
-                elif algo == "SRTF":
-                    resultado = srtf.srtf_scheduler(procesos)
-                elif algo == "Round Robin":
-                    resultado = round_robin.round_robin_scheduler(procesos, quantum)
-                elif algo == "Priority":
-                    resultado = priority.priority_scheduler(procesos)
-                else:
-                    st.error("Algoritmo no implementado.")
-                    continue
+            for i, algo in enumerate(algos):
+                with tabs[i]:
+                    st.markdown(f"### Algoritmo: `{algo}`")
 
-                st.markdown("#### 🕒 Diagrama de Gantt (simulación animada)")
-                gantt = resultado["timeline"]
-                gantt_placeholder = st.empty()
+                    if algo == "FIFO":
+                        resultado = fifo.fifo_scheduler(procesos)
+                    elif algo == "SJF":
+                        resultado = sjf.sjf_scheduler(procesos)
+                    elif algo == "SRTF":
+                        resultado = srtf.srtf_scheduler(procesos)
+                    elif algo == "Round Robin":
+                        resultado = round_robin.round_robin_scheduler(procesos, quantum)
+                    elif algo == "Priority":
+                        resultado = priority.priority_scheduler(procesos)
+                    else:
+                        st.error("Algoritmo no implementado.")
+                        continue
 
-                df_gantt = pd.DataFrame(columns=["Proceso", "Inicio", "Fin", "Duración", "Base"])
+                    st.markdown("#### 🕒 Diagrama de Gantt (simulación animada)")
+                    gantt = resultado["timeline"]
+                    gantt_placeholder = st.empty()
 
-                for bloque in gantt:
-                    new_row = {
-                        "Proceso": bloque["pid"],
-                        "Inicio": bloque["start"],
-                        "Fin": bloque["end"],
-                        "Duración": bloque["end"] - bloque["start"],
-                        "Base": bloque["start"]
-                    }
-                    df_gantt = pd.concat([df_gantt, pd.DataFrame([new_row])], ignore_index=True)
+                    df_gantt = pd.DataFrame(columns=["Proceso", "Inicio", "Fin", "Duración", "Base"])
 
-                    fig = px.bar(
-                        df_gantt,
-                        y="Proceso",
-                        x="Duración",
-                        color="Proceso",
-                        orientation="h",
-                        text="Duración",
-                        base="Base",
-                        hover_data=["Inicio", "Fin"]
-                    )
-                    fig.update_layout(
-                        title="Diagrama de Gantt (basado en ciclos)",
-                        xaxis_title="Ciclo",
-                        yaxis_title="Proceso",
-                        barmode="stack"
-                    )
-                    gantt_placeholder.plotly_chart(fig, use_container_width=True)
+                    for bloque in gantt:
+                        new_row = {
+                            "Proceso": bloque["pid"],
+                            "Inicio": bloque["start"],
+                            "Fin": bloque["end"],
+                            "Duración": bloque["end"] - bloque["start"],
+                            "Base": bloque["start"]
+                        }
+                        df_gantt = pd.concat([df_gantt, pd.DataFrame([new_row])], ignore_index=True)
 
-                    if simulate_step_by_step:
-                        time.sleep(0.3 * new_row["Duración"])
+                        fig = px.bar(
+                            df_gantt,
+                            y="Proceso",
+                            x="Duración",
+                            color="Proceso",
+                            orientation="h",
+                            text="Duración",
+                            base="Base",
+                            hover_data=["Inicio", "Fin"]
+                        )
+                        fig.update_layout(
+                            title="Diagrama de Gantt (basado en ciclos)",
+                            xaxis_title="Ciclo",
+                            yaxis_title="Proceso",
+                            barmode="stack"
+                        )
+                        gantt_placeholder.plotly_chart(fig, use_container_width=True)
 
-                st.markdown("#### 📈 Métricas de eficiencia")
-                st.metric("Tiempo promedio de espera", f"{resultado['avg_waiting_time']:.2f} ciclos")
-                total_time = max(b['end'] for b in gantt)
-                st.metric("Tiempo total de ejecución", f"{total_time} ciclos")
+                        if simulate_step_by_step:
+                            time.sleep(0.3 * new_row["Duración"])
+
+                    st.markdown("#### 📈 Métricas de eficiencia")
+                    st.metric("Tiempo promedio de espera", f"{resultado['avg_waiting_time']:.2f} ciclos")
+                    total_time = max(b['end'] for b in gantt)
+                    st.metric("Tiempo total de ejecución", f"{total_time} ciclos")
+    else:
+        st.warning("No se cargaron procesos válidos.")
 
 else:
     st.warning("Por favor, carga un archivo de procesos válido para comenzar.")
